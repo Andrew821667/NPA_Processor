@@ -1,30 +1,110 @@
 """
-Модуль для поиска нормативно-правовых актов (НПА)
-Использует официальный API publication.pravo.gov.ru и GPT для извлечения документов
+NPA Searcher - Модуль для поиска российских нормативно-правовых актов
+Расширен поддержкой профессиональных стандартов
 """
 
-# Импортируем основные классы из соответствующих модулей
-from npa_searcher.processor import NPAProcessor
-from npa_searcher.npa_searcher import NPASearcher
-from npa_searcher.gpt_helper import GPTHelper
-from npa_searcher.config import Config
-from npa_searcher.exceptions import NPASearchError, APIError
+# Основные импорты
+from .npa_searcher import NPASearcher
+from .processor import NPAProcessor
+from .gpt_helper import GPTHelper
+from .config import Config
 
-# Версия модуля
-__version__ = "1.0.0"
+# Безопасный импорт исключений
+try:
+    from .exceptions import NPAError
+except ImportError:
+    class NPAError(Exception):
+        pass
 
-# Автор
+# Безопасный импорт утилит
+try:
+    from .utils import setup_logging
+except ImportError:
+    import logging
+    def setup_logging(name):
+        return logging.getLogger(name)
+
+# Импорт подмодуля профстандартов
+try:
+    from . import profstandards
+    from .profstandards import (
+        ProfstandardDownloader,
+        ProfstandardParser,
+        ProfstandardAnalyzer
+    )
+    PROFSTANDARDS_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Профстандарты недоступны: {e}")
+    PROFSTANDARDS_AVAILABLE = False
+
+__version__ = "1.1.0"
 __author__ = "Andrew_Popov"
 
-# Описание
-__description__ = "Модуль для поиска российских нормативно-правовых актов"
-
-# Что доступно при импорте модуля (import *)
+# Основные классы
 __all__ = [
-    "NPAProcessor",    # Главный класс для пользователей
-    "NPASearcher",     # Поисковик НПА через API
-    "GPTHelper",       # GPT помощник для извлечения документов
-    "Config",          # Конфигурация модуля
-    "NPASearchError",  # Базовая ошибка модуля
-    "APIError",        # Ошибка API
+    'NPASearcher',
+    'NPAProcessor', 
+    'GPTHelper',
+    'Config',
+    'NPAError',
+    'setup_logging'
 ]
+
+if PROFSTANDARDS_AVAILABLE:
+    __all__.extend([
+        'ProfstandardDownloader',
+        'ProfstandardParser',
+        'ProfstandardAnalyzer',
+        'profstandards'
+    ])
+
+# Упрощенная функция для создания загрузчика профстандартов
+def create_profstandard_downloader():
+    """Создать загрузчик профстандартов"""
+    if not PROFSTANDARDS_AVAILABLE:
+        raise ImportError("Модуль профстандартов недоступен")
+    
+    return ProfstandardDownloader()
+
+# Быстрая функция для поиска профстандартов
+def quick_profstandard_search(keywords):
+    """
+    Быстрый поиск профстандартов по ключевым словам (заглушка)
+    """
+    if not PROFSTANDARDS_AVAILABLE:
+        return []
+    
+    # Пока возвращаем заглушку
+    if isinstance(keywords, str):
+        keywords = [keywords]
+    
+    # Имитация результатов поиска
+    mock_results = [
+        {
+            'code': '01.001',
+            'name': 'Педагог (педагогическая деятельность в сфере дошкольного, начального общего, основного общего, среднего общего образования)',
+            'area': 'Образование и наука',
+            'status': 'действует',
+            'relevance': 0.9,
+            'matched_keywords': [kw for kw in keywords if kw.lower() in 'педагог учитель']
+        },
+        {
+            'code': '06.015',
+            'name': 'Специалист по информационным системам',
+            'area': 'Связь, информационные и коммуникационные технологии',
+            'status': 'действует',
+            'relevance': 0.8,
+            'matched_keywords': [kw for kw in keywords if kw.lower() in 'программист информационные системы']
+        }
+    ]
+    
+    # Фильтруем результаты по ключевым словам
+    filtered_results = []
+    for result in mock_results:
+        for keyword in keywords:
+            if keyword.lower() in result['name'].lower() or keyword.lower() in result['area'].lower():
+                if result not in filtered_results:
+                    filtered_results.append(result)
+                break
+    
+    return filtered_results

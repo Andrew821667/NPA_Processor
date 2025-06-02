@@ -73,3 +73,9 @@ class InvalidDocumentError(NPASearchError):
     Некорректные данные документа
     """
     pass
+
+
+# Добавлено для интеграции с профстандартами
+class NPAError(Exception):
+    """Базовый класс исключений для NPA модуля"""
+    pass
